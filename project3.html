@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 3 - Mini Project (Web Branding)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #fef08a;
+            color: #1e293b;
+        }
+        .box-container {
+            background-color: #fefcbf;
+            border-radius: 12px;
+            border: 2px solid #eab308;
+            padding: 35px;
+        }
+        .btn-dark-custom {
+            background-color: #1e293b;
+            color: white;
+            font-weight: 600;
+            border: none;
+        }
+        .btn-dark-custom:hover {
+            background-color: #0f172a;
+        }
+        .product-card {
+            background-color: #ffffff;
+            border: 2px solid #eab308;
+            border-radius: 10px;
+            padding: 25px;
+        }
+        .cart-section {
+            background-color: #fffbeb;
+            border: 2px dashed #eab308;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .table-custom-product th {
+            background-color: #eab308 !important;
+            color: #0f172a !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container my-5 col-lg-10">
+        <div class="box-container shadow-sm">
+            <h2 class="fw-bold text-dark mb-2">Nama Project: MINI PROJECT (WEB BRANDING)</h2>
+            <p class="text-muted mb-4">Deskripsi Singkat Project: Disini terdapat website yang saya buat untuk branding laptop gaming premium.</p>
+            
+            <!-- Bagian Utama Produk -->
+            <div class="product-card shadow-sm my-4">
+                <div class="text-center mb-4">
+                    <h3 class="fw-bold text-dark">ASUS ROG ZEPHYRUS SERIES</h3>
+                    <p class="text-warning-emphasis font-monospace fw-bold">"Ultimate Gaming and Coding Beast"</p>
+                </div>
+
+                <!-- Tabel Perbandingan Komparatif 3 Model Zephyrus -->
+                <h5 class="fw-bold text-dark mb-3">Tabel Perbandingan Spesifikasi & Harga</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-custom-product text-center align-middle bg-light">
+                        <thead>
+                            <tr>
+                                <th>Model Laptop</th>
+                                <th>Ukuran Layar</th>
+                                <th>Processor & Grafis (GPU)</th>
+                                <th>RAM & Storage</th>
+                                <th>Harga Laptop</th>
+                                <th>Aksi Belanja</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>ROG Zephyrus G14</strong></td>
+                                <td>14" ROG Nebula OLED</td>
+                                <td>AMD Ryzen 9 & RTX 4070</td>
+                                <td>16GB LPDDR5X / 1TB SSD</td>
+                                <td class="text-success fw-bold">Rp 29.999.000</td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning fw-bold px-3 shadow-sm" onclick="addToCart('ASUS ROG Zephyrus G14', 29999000)">
+                                        + Pilih Laptop
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>ROG Zephyrus G15</strong></td>
+                                <td>15.6" WQHD 240Hz</td>
+                                <td>AMD Ryzen 9 & RTX 4080</td>
+                                <td>32GB DDR5 / 1TB SSD</td>
+                                <td class="text-success fw-bold">Rp 35.499.000</td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning fw-bold px-3 shadow-sm" onclick="addToCart('ASUS ROG Zephyrus G15', 35499000)">
+                                        + Pilih Laptop
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>ROG Zephyrus G16</strong></td>
+                                <td>16" 2.5K OLED 240Hz</td>
+                                <td>Intel Core Ultra 9 & RTX 4090</td>
+                                <td>32GB LPDDR5X / 2TB SSD</td>
+                                <td class="text-success fw-bold">Rp 48.999.000</td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning fw-bold px-3 shadow-sm" onclick="addToCart('ASUS ROG Zephyrus G16', 48999000)">
+                                        + Pilih Laptop
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <hr class="border border-warning my-4">
+
+                <!-- Fitur Utama Tambahan Komparasi -->
+                <div class="row g-3 my-2">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light border rounded">
+                            <h6 class="fw-bold text-dark text-center">Zephyrus G14</h6>
+                            <p class="small text-muted mb-0">Paling ringkas, sangat enteng dibawa ke sekolah atau kafe tanpa membebani tas punggung.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light border rounded">
+                            <h6 class="fw-bold text-dark text-center">Zephyrus G15</h6>
+                            <p class="small text-muted mb-0">Rasio layar paling seimbang untuk performa game kompetitif tinggi dan multitasking aplikasi berat.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light border rounded">
+                            <h6 class="fw-bold text-dark text-center">Zephyrus G16</h6>
+                            <p class="small text-muted mb-0">Kasta tertinggi dengan spesifikasi monster dan ruang layar luas, sangat ideal untuk coding atau render game engine.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bagian Interaktif Sistem Keranjang Belanja -->
+                <div class="cart-section mt-5 shadow-sm">
+                    <h5 class="fw-bold text-dark d-flex justify-content-between align-items-center">
+                        <span>🛒 Keranjang Belanja Saya</span>
+                        <button class="btn btn-sm btn-outline-danger" onclick="clearCart()">Kosongkan</button>
+                    </h5>
+                    
+                    <!-- Tempat List Item Keranjang Ditampilkan via JavaScript -->
+                    <ul id="cart-list" class="list-group my-3">
+                        <li class="list-group-item text-center text-muted py-3 italic">Belum ada laptop yang dipilih. Silakan klik tombol "+ Pilih Laptop" di atas!</li>
+                    </ul>
+
+                    <!-- Detail Perhitungan Nota Pembelian -->
+                    <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded border">
+                        <span class="fw-bold text-secondary">Total Barang: <span id="total-items">0</span> Unit</span>
+                        <span class="fs-5 fw-bold text-success">Total Harga: Rp <span id="total-price">0</span></span>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <button class="btn btn-dark w-100 py-2 fw-bold" onclick="checkoutAction()">Proses Checkout Sekarang</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Tombol Navigasi Utama -->
+            <div class="text-center mt-5">
+                <a href="index.html" class="btn btn-dark-custom px-4">Kembali ke Halaman Utama</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sistem Logika Kode JavaScript Keranjang Belanja -->
+    <script>
+        // Array tempat menampung item yang dibeli
+        let cart = [];
+
+        function addToCart(laptopName, price) {
+            // Cek apakah produk tersebut sudah pernah dimasukkan ke keranjang
+            let existingProduct = cart.find(item => item.name === laptopName);
+            
+            if (existingProduct) {
+                existingProduct.quantity += 1;
+            } else {
+                cart.push({
+                    name: laptopName,
+                    price: price,
+                    quantity: 1
+                });
+            }
+            updateCartUI();
+        }
+
+        function clearCart() {
+            cart = [];
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            let cartList = document.getElementById('cart-list');
+            let totalItemsSpan = document.getElementById('total-items');
+            let totalPriceSpan = document.getElementById('total-price');
+            
+            // Bersihkan tampilan lama
+            cartList.innerHTML = '';
+            
+            if (cart.length === 0) {
+                cartList.innerHTML = `<li class="list-group-item text-center text-muted py-3">Belum ada laptop yang dipilih. Silakan klik tombol "+ Pilih Laptop" di atas!</li>`;
+                totalItemsSpan.innerText = '0';
+                totalPriceSpan.innerText = '0';
+                return;
+            }
+
+            let totalItems = 0;
+            let totalPrice = 0;
+
+            cart.forEach(item => {
+                let subTotal = item.price * item.quantity;
+                totalItems += item.quantity;
+                totalPrice += subTotal;
+
+                // Membuat element list baru secara dinamis
+                let li = document.createElement('li');
+                li.className = "list-group-item d-flex justify-content-between align-items-center text-dark";
+                li.innerHTML = `
+                    <div>
+                        <strong>${item.name}</strong> <span class="badge bg-secondary ms-2">x${item.quantity}</span>
+                    </div>
+                    <span class="text-success fw-bold">Rp ${subTotal.toLocaleString('id-ID')}</span>
+                `;
+                cartList.appendChild(li);
+            });
+
+            // Update isi summary angka teks ke layar browser
+            totalItemsSpan.innerText = totalItems;
+            totalPriceSpan.innerText = totalPrice.toLocaleString('id-ID');
+        }
+
+        function checkoutAction() {
+            if (cart.length === 0) {
+                alert("Gagal proses! Keranjang kamu masih kosong, pilih tipe laptopnya dulu ya.");
+            } else {
+                alert(`Pemesanan Berhasil Dikunci!\n\nTerima kasih sudah memilih produk laptop ASUS ROG Zephyrus di website kami.`);
+                clearCart();
+            }
+        }
+
+        console.log("Sistem Keranjang Belanja Interaktif ASUS ROG Zephyrus Sukses Dikonfigurasi.");
+    </script>
+</body>
+</html>
