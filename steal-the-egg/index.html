@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Steal the Golden Egg</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden; background: #8ccfff;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  canvas { display: block; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+
+  .panel {
+    position: fixed; z-index: 10; color: #fff;
+    background: rgba(18, 20, 26, 0.72);
+    border: 2px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  #scoreboard {
+    top: 16px; left: 16px; padding: 10px 18px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 22px; font-weight: 800; letter-spacing: 0.3px;
+  }
+  #scoreboard .egg-icon {
+    width: 22px; height: 29px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: radial-gradient(circle at 35% 30%, #fff8c4, #ffc400 55%, #a87100);
+    box-shadow: 0 0 12px #ffd84a;
+  }
+  #scoreValue { color: #ffd84a; display: inline-block; }
+  #scoreValue.bump { animation: bump 0.5s ease-out; }
+  @keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.7); color: #fff; } 100% { transform: scale(1); } }
+
+  #status {
+    top: 16px; left: 50%; transform: translateX(-50%);
+    padding: 10px 28px; font-size: 22px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  }
+  #status.chase { animation: chaseFlash 0.5s steps(1) infinite; border-color: #fff; }
+  @keyframes chaseFlash {
+    0%   { background: #ffcc00; color: #b00000; text-shadow: none; }
+    50%  { background: #d40000; color: #ffe14d; }
+  }
+
+  #controls {
+    bottom: 16px; left: 16px; padding: 9px 14px;
+    font-size: 13px; font-weight: 600; line-height: 1.55; color: #e8ecf3;
+  }
+  #controls b { color: #ffd84a; }
+  #controls .sub { font-size: 11px; opacity: 0.7; font-weight: 500; }
+
+  #flash { position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0; }
+  #vignette {
+    position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
+    box-shadow: inset 0 0 140px 30px rgba(255, 0, 0, 0.55);
+    transition: opacity 0.3s;
+  }
+  #vignette.on { opacity: 1; animation: pulse 0.9s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.45; } }
+
+  #toast {
+    position: fixed; top: 34%; left: 50%; z-index: 11; pointer-events: none;
+    transform: translate(-50%, -50%); text-align: center; opacity: 0;
+  }
+  #toast .t-main {
+    font-size: 64px; font-weight: 900; color: #fff; letter-spacing: 2px;
+    -webkit-text-stroke: 3px #1b1b1b; paint-order: stroke fill;
+    text-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+  }
+  #toast .t-sub {
+    margin-top: 6px; font-size: 22px; font-weight: 800; color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  }
+  #toast.good .t-main { color: #ffd84a; }
+  #toast.bad .t-main { color: #ff4b4b; }
+  #toast.info .t-main { color: #7dff8a; font-size: 48px; }
+  #toast.show { animation: toastPop 1.8s ease-out forwards; }
+  @keyframes toastPop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+    12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+    22%  { transform: translate(-50%, -50%) scale(1); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+  }
+
+  #start {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(10, 30, 60, 0.45), rgba(5, 10, 25, 0.8));
+  }
+  #start .card {
+    background: #1d2129; color: #fff; border-radius: 16px; padding: 30px 40px;
+    text-align: center; max-width: 520px; border: 3px solid #ffd84a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+  #start h1 { font-size: 40px; font-weight: 900; color: #ffd84a; letter-spacing: 1px; text-shadow: 0 3px 0 #8a5d00; }
+  #start p { margin: 14px 0; font-size: 15px; line-height: 1.6; color: #d7dce6; }
+  #start p b { color: #fff; }
+  #playBtn {
+    margin-top: 8px; padding: 14px 54px; font-size: 24px; font-weight: 900;
+    color: #fff; background: #00b06b; border: none; border-radius: 10px; cursor: pointer;
+    box-shadow: 0 5px 0 #007a49; transition: transform 0.08s;
+  }
+  #playBtn:hover { background: #00c878; }
+  #playBtn:active { transform: translateY(4px); box-shadow: 0 1px 0 #007a49; }
+  .hidden { display: none !important; }
+</style>
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+  <div id="scoreboard" class="panel"><div class="egg-icon"></div><span>Eggs Stolen: <span id="scoreValue">0</span></span></div>
+  <div id="status" class="panel">Steal the Golden Egg!</div>
+  <div id="controls" class="panel">
+    <div><b>WASD</b>: Move | <b>Space</b>: Jump | <b>Mouse</b>: Rotate Camera</div>
+    <div class="sub">Click to lock mouse · Esc to release · Scroll to zoom</div>
+  </div>
+  <div id="vignette"></div>
+  <div id="flash"></div>
+  <div id="toast"></div>
+  <div id="start">
+    <div class="card">
+      <h1>STEAL THE GOLDEN EGG</h1>
+      <p>Cross the obby, dodge the <b style="color:#ff5b5b">red lasers</b>, sneak past the
+        <b>Nest Guardians</b> and grab the <b style="color:#ffd84a">Golden Egg</b>.<br>
+        Then run back to the <b style="color:#5dff7a">Safe Zone</b> before they catch you!</p>
+      <p><b>WASD / Arrows</b> move · <b>Space</b> jump · <b>Mouse</b> look</p>
+      <button id="playBtn">PLAY</button>
+    </div>
+  </div>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ---------------------------------------------------------------- constants
+const GRAVITY = 38, JUMP_V = 14, SPEED = 12, CARRY_MULT = 0.85, STEP = 0.9;
+const PLAYER_R = 0.5, PLAYER_H = 3.3;
+const GUARD_R = 0.55, GUARD_H = 3.6, GUARD_JUMP = 15, PATROL_R = 9.5;
+const KILL_Y = -25;
+const SAFE = { x: 0, z: 12, size: 18, top: 0.3 };
+const NEST = { x: 0, z: -131, size: 12, top: 0.8 };
+const EGG_HOME = new THREE.Vector3(NEST.x, NEST.top + 2.3, NEST.z);
+
+// ---------------------------------------------------------------- renderer / scene
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xd4ecff, 150, 420);
+const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 1500);
+
+// Gradient sky dome that follows the camera.
+const sky = new THREE.Mesh(
+  new THREE.SphereGeometry(700, 32, 16),
+  new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { top: { value: new THREE.Color(0x2d84ff) }, bottom: { value: new THREE.Color(0xd4ecff) } },
+    vertexShader: `varying vec3 vDir;
+      void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform vec3 top; uniform vec3 bottom; varying vec3 vDir;
+      void main() { float h = clamp(vDir.y * 1.6 + 0.05, 0.0, 1.0);
+        gl_FragColor = vec4(mix(bottom, top, pow(h, 0.65)), 1.0);
+        #include <colorspace_fragment>
+      }`,
+  })
+);
+sky.renderOrder = -1;
+scene.add(sky);
+
+scene.add(new THREE.HemisphereLight(0xd8ecff, 0x8a7a5a, 1.2));
+const sun = new THREE.DirectionalLight(0xffffff, 2.4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 220 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+
+// ---------------------------------------------------------------- procedural textures
+function canvasTex(size, draw) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const studTex = canvasTex(64, (g) => {
+  g.fillStyle = '#e4e4e4'; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = 'rgba(0,0,0,0.16)'; g.beginPath(); g.arc(35, 35, 17, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ffffff'; g.beginPath(); g.arc(32, 32, 16, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = 'rgba(0,0,0,0.10)'; g.lineWidth = 2; g.strokeRect(1, 1, 62, 62);
+});
+studTex.wrapS = studTex.wrapT = THREE.RepeatWrapping;
+studTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+const glowTex = canvasTex(128, (g, s) => {
+  const grd = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  grd.addColorStop(0, 'rgba(255,255,255,1)');
+  grd.addColorStop(0.25, 'rgba(255,230,140,0.7)');
+  grd.addColorStop(1, 'rgba(255,200,0,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, s, s);
+});
+
+function textSprite(text, fg, bg, scale = 10) {
+  const tex = canvasTex(512, (g) => {
+    g.clearRect(0, 0, 512, 512);
+    g.fillStyle = bg;
+    const x = 16, y = 176, w = 480, h = 160, r = 36;
+    g.beginPath();
+    g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); g.fill();
+    g.lineWidth = 8; g.strokeStyle = 'rgba(255,255,255,0.85)'; g.stroke();
+    g.font = '900 70px "Segoe UI", Arial, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = fg; g.fillText(text, 256, 260);
+  });
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false, transparent: true }));
+  s.scale.set(scale, scale, 1);
+  return s;
+}
+
+// ---------------------------------------------------------------- level geometry
+const solids = []; // static AABBs used for collision
+const edgeMat = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 });
+
+function addBlock({ x, top, z, w, h = 1, d, color, sideColor, studs = true, solid = true,
+                    edges = true, cast = true, metal = 0, rough = 0.72, emissive = 0x000000 }) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const side = new THREE.MeshStandardMaterial({ color: sideColor ?? color, roughness: rough, metalness: metal, emissive });
+  let topMat = side;
+  if (studs) {
+    const t = studTex.clone();
+    t.repeat.set(w / 2, d / 2);
+    t.needsUpdate = true;
+    topMat = new THREE.MeshStandardMaterial({ color, map: t, roughness: rough, metalness: metal, emissive });
+  }
+  const mesh = new THREE.Mesh(geo, [side, side, topMat, side, side, side]);
+  mesh.position.set(x, top - h / 2, z);
+  mesh.castShadow = cast;
+  mesh.receiveShadow = true;
+  if (edges) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
+  scene.add(mesh);
+  if (solid) solids.push({ minX: x - w / 2, maxX: x + w / 2, minY: top - h, maxY: top, minZ: z - d / 2, maxZ: z + d / 2 });
+  return mesh;
+}
+
+// Baseplate islands (spawn side & nest side) floating over a lava chasm.
+addBlock({ x: 0, top: 0, z: 16, w: 60, h: 30, d: 48, color: 0xa3a2a5, sideColor: 0x6d6256, edges: false });
+addBlock({ x: 0, top: 0, z: -131, w: 60, h: 30, d: 38, color: 0xa3a2a5, sideColor: 0x6d6256, edges: false });
+
+// Safe zone (green) and egg nest (gold).
+addBlock({ x: SAFE.x, top: SAFE.top, z: SAFE.z, w: SAFE.size, h: 0.8, d: SAFE.size, color: 0x34d058, sideColor: 0x22a043, emissive: 0x0a3312 });
+addBlock({ x: NEST.x, top: NEST.top, z: NEST.z, w: NEST.size, h: 1.2, d: NEST.size, color: 0xffc61a, sideColor: 0xd99a00, metal: 0.55, rough: 0.35, emissive: 0x3a2600 });
+
+const safeField = new THREE.Mesh(
+  new THREE.CylinderGeometry(SAFE.size * 0.62, SAFE.size * 0.62, 7, 40, 1, true),
+  new THREE.MeshBasicMaterial({ color: 0x55ff77, transparent: true, opacity: 0.09, side: THREE.DoubleSide, depthWrite: false })
+);
+safeField.position.set(SAFE.x, SAFE.top + 3.5, SAFE.z);
+scene.add(safeField);
+const safeSign = textSprite('SAFE ZONE', '#ffffff', 'rgba(20,160,60,0.92)', 9);
+safeSign.position.set(SAFE.x - 13, 5, SAFE.z - 4);
+scene.add(safeSign);
+const nestSign = textSprite('EGG NEST', '#3a2500', 'rgba(255,196,20,0.95)', 11);
+nestSign.position.set(NEST.x, 11, NEST.z + 4);
+scene.add(nestSign);
+
+const twigs = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.45, 8, 22), new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 1 }));
+twigs.rotation.x = Math.PI / 2;
+twigs.position.set(NEST.x, NEST.top + 0.35, NEST.z);
+twigs.castShadow = twigs.receiveShadow = true;
+scene.add(twigs);
+
+// Obstacle course: [x, top, z, width, depth, color]
+const C = { blue: 0x2f8cff, purple: 0x9b59ff, orange: 0xff9f1a, cyan: 0x1ad1ff, pink: 0xff5fc8, lime: 0x8fe03a, yellow: 0xffe14d, slate: 0x55606e };
+const COURSE = [
+  [0, 0, -12, 5, 5, C.blue],
+  [3, 1, -18.5, 5, 5, C.purple],
+  [-2, 2, -25, 5, 5, C.orange],
+  [2, 1.5, -31.5, 4, 4, C.cyan],
+  [0, 1, -46.5, 10, 18, C.slate],   // laser bridge A
+  [-3, 2, -59.5, 4, 4, C.pink],
+  [2, 3, -65.5, 4, 4, C.lime],
+  [-1, 2.5, -71.5, 3.5, 3.5, C.yellow],
+  [0, 2, -84, 8, 16, C.slate],      // laser bridge B
+  [0, 1, -96, 5, 5, C.blue],
+  [-3, 0.5, -102.5, 5, 5, C.purple],
+  [1, 0, -108, 4, 4, C.orange],
+];
+for (const [x, top, z, w, d, color] of COURSE) addBlock({ x, top, z, w, h: 1, d, color });
+
+// Guardian navigation waypoints, ordered nest -> safe zone.
+const WAYPOINTS = [{ x: NEST.x, y: NEST.top, z: NEST.z }]
+  .concat(COURSE.map(([x, y, z]) => ({ x, y, z })).sort((a, b) => a.z - b.z))
+  .concat([{ x: SAFE.x, y: SAFE.top, z: SAFE.z }]);
+
+// Lava sea far below.
+const lavaMat = new THREE.MeshStandardMaterial({ color: 0xe0481a, emissive: 0xff3300, emissiveIntensity: 0.7, roughness: 0.6 });
+const lavaSea = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), lavaMat);
+lavaSea.rotation.x = -Math.PI / 2;
+lavaSea.position.y = -32;
+scene.add(lavaSea);
+
+// ---------------------------------------------------------------- hazards
+const laserMat = new THREE.MeshStandardMaterial({ color: 0xff2a1a, emissive: 0xff1100, emissiveIntensity: 1.3, roughness: 0.4 });
+const laserGlow = new THREE.MeshBasicMaterial({ color: 0xff3a2a, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false });
+const railMat = new THREE.MeshStandardMaterial({ color: 0x222831, roughness: 0.5, metalness: 0.4 });
+const hazards = [];
+
+function laserMesh(w, h, d) {
+  const g = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), laserMat);
+  core.castShadow = true;
+  g.add(core, new THREE.Mesh(new THREE.BoxGeometry(w + 0.35, h + 0.35, d + 0.35), laserGlow));
+  return g;
+}
+function addSlider(z, floorTop, amp, speed, phase, w = 2.2, h = 2, d = 1.6) {
+  const group = laserMesh(w, h, d);
+  group.position.set(0, floorTop + h / 2, z);
+  scene.add(group);
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(amp * 2 + w, 0.08, 0.5), railMat);
+  rail.position.set(0, floorTop + 0.04, z);
+  rail.receiveShadow = true;
+  scene.add(rail);
+  hazards.push({ type: 'slider', group, z, amp, speed, phase, w, h, d });
+}
+function addSpinner(x, z, floorTop, len, speed) {
+  const group = laserMesh(len, 0.5, 0.5);
+  group.position.set(x, floorTop + 0.6, z);
+  scene.add(group);
+  addBlock({ x, top: floorTop + 1.2, z, w: 0.9, h: 1.2, d: 0.9, color: 0x333a44, studs: false });
+  hazards.push({ type: 'spinner', group, x, z, y: floorTop + 0.6, len, speed });
+}
+addSlider(-41, 1, 3.8, 1.6, 0);
+addSlider(-46.5, 1, 3.8, 2.1, 2.1);
+addSlider(-52, 1, 3.8, 1.3, 4.2);
+addSlider(-79, 2, 2.9, 1.9, 1.0);
+addSpinner(0, -84, 2, 7.6, 1.8);
+addSlider(-89, 2, 2.9, 2.3, 3.0);
+
+function updateHazards(t) {
+  for (const hz of hazards) {
+    if (hz.type === 'slider') hz.group.position.x = Math.sin(t * hz.speed + hz.phase) * hz.amp;
+    else hz.group.rotation.y = t * hz.speed;
+  }
+}
+function hitsHazard(p) {
+  const r = 0.4, y0 = p.y + 0.1, y1 = p.y + PLAYER_H - 0.2;
+  for (const hz of hazards) {
+    if (hz.type === 'slider') {
+      const c = hz.group.position;
+      if (Math.abs(p.x - c.x) < hz.w / 2 + r && Math.abs(p.z - hz.z) < hz.d / 2 + r &&
+          y1 > c.y - hz.h / 2 && y0 < c.y + hz.h / 2) return true;
+    } else {
+      // Transform into the bar's local space (inverse of rotation.y).
+      const a = hz.group.rotation.y, dx = p.x - hz.x, dz = p.z - hz.z;
+      const lx = dx * Math.cos(a) - dz * Math.sin(a);
+      const lz = dx * Math.sin(a) + dz * Math.cos(a);
+      if (Math.abs(lx) < hz.len / 2 + r && Math.abs(lz) < 0.25 + r && y1 > hz.y - 0.25 && y0 < hz.y + 0.25) return true;
+    }
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------- decoration
+function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const rand = rng(1337);
+function addTree(x, z) {
+  addBlock({ x, top: 3, z, w: 1.2, h: 3, d: 1.2, color: 0x8b5a2b, studs: false });
+  addBlock({ x, top: 6.4, z, w: 4.2, h: 3.4, d: 4.2, color: 0x3fbf3f, studs: false, solid: false });
+  addBlock({ x, top: 7.8, z, w: 2.6, h: 1.4, d: 2.6, color: 0x4fd44f, studs: false, solid: false });
+}
+for (let i = 0; i < 14; i++) {
+  const side = i % 2 ? 1 : -1;
+  addTree(side * (13 + rand() * 14), -4 + rand() * 40);
+}
+for (let i = 0; i < 8; i++) {
+  const side = i % 2 ? 1 : -1;
+  addTree(side * (17 + rand() * 10), -146 + rand() * 30);
+}
+
+const clouds = [];
+const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x666666 });
+for (let i = 0; i < 16; i++) {
+  const g = new THREE.Group();
+  const n = 3 + Math.floor(rand() * 3);
+  for (let j = 0; j < n; j++) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(8 + rand() * 10, 3 + rand() * 3, 6 + rand() * 6), cloudMat);
+    b.position.set(j * 6 - n * 3, rand() * 2, rand() * 4 - 2);
+    g.add(b);
+  }
+  g.position.set(rand() * 400 - 200, 45 + rand() * 30, rand() * 300 - 210);
+  scene.add(g);
+  clouds.push(g);
+}
+
+// ---------------------------------------------------------------- characters
+function makeRig({ head, torso, arms, legs, eye = 0x111111, angry = false, scale = 0.62 }) {
+  const root = new THREE.Group();
+  const body = new THREE.Group();
+  body.scale.setScalar(scale);
+  root.add(body);
+  const mat = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.55 });
+  const box = (w, h, d, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.castShadow = true; b.receiveShadow = true; return b; };
+
+  const torsoM = box(2, 2, 1, mat(torso)); torsoM.position.y = 3; body.add(torsoM);
+  const headM = box(1.25, 1.25, 1.25, mat(head)); headM.position.y = 4.68; body.add(headM);
+
+  const faceMat = new THREE.MeshBasicMaterial({ color: eye });
+  for (const sx of [-0.27, 0.27]) {
+    const e = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.27, 0.04), faceMat);
+    e.position.set(sx, 0.12, 0.64); headM.add(e);
+  }
+  if (angry) {
+    for (const sx of [-1, 1]) {
+      const brow = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.08, 0.04), faceMat);
+      brow.position.set(sx * 0.27, 0.36, 0.64); brow.rotation.z = sx * 0.45; headM.add(brow);
+    }
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.07, 0.04), faceMat);
+    mouth.position.set(0, -0.26, 0.64); headM.add(mouth);
+  } else {
+    const smileMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    const mid = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.07, 0.04), smileMat);
+    mid.position.set(0, -0.27, 0.64); headM.add(mid);
+    for (const sx of [-1, 1]) {
+      const c = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.07, 0.04), smileMat);
+      c.position.set(sx * 0.22, -0.21, 0.64); c.rotation.z = sx * 0.6; headM.add(c);
+    }
+  }
+
+  const limb = (x, y, color) => {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, y, 0);
+    const m = box(1, 2, 1, mat(color));
+    m.position.y = -1;
+    pivot.add(m);
+    body.add(pivot);
+    return pivot;
+  };
+  return {
+    root, body,
+    lArm: limb(-1.5, 4, arms), rArm: limb(1.5, 4, arms),
+    lLeg: limb(-0.5, 2, legs), rLeg: limb(0.5, 2, legs),
+    phase: 0,
+  };
+}
+
+function animateRig(rig, dt, moveAmt, grounded, carrying) {
+  rig.phase += dt * 11 * Math.min(moveAmt, 1.2);
+  const swing = Math.sin(rig.phase) * 0.9 * Math.min(moveAmt, 1);
+  let lLeg = swing, rLeg = -swing, lArm = -swing, rArm = swing, lArmZ = 0, rArmZ = 0;
+  if (!grounded) { lLeg = 0.55; rLeg = -0.35; lArm = -0.9; rArm = -0.9; }
+  if (carrying) { lArm = rArm = Math.PI - 0.15; lArmZ = -0.3; rArmZ = 0.3; }
+  const k = 1 - Math.exp(-18 * dt);
+  rig.lLeg.rotation.x += (lLeg - rig.lLeg.rotation.x) * k;
+  rig.rLeg.rotation.x += (rLeg - rig.rLeg.rotation.x) * k;
+  rig.lArm.rotation.x += (lArm - rig.lArm.rotation.x) * k;
+  rig.rArm.rotation.x += (rArm - rig.rArm.rotation.x) * k;
+  rig.lArm.rotation.z += (lArmZ - rig.lArm.rotation.z) * k;
+  rig.rArm.rotation.z += (rArmZ - rig.rArm.rotation.z) * k;
+}
+function turnToward(obj, target, dt, rate = 14) {
+  let diff = target - obj.rotation.y;
+  diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+  obj.rotation.y += diff * (1 - Math.exp(-rate * dt));
+}
+
+// ---------------------------------------------------------------- collision helpers
+function groundAt(x, z, feetY, r) {
+  let best = -Infinity;
+  for (const s of solids) {
+    if (x + r <= s.minX || x - r >= s.maxX || z + r <= s.minZ || z - r >= s.maxZ) continue;
+    if (s.maxY <= feetY + STEP && s.maxY > best) best = s.maxY;
+  }
+  return best;
+}
+function isBlocked(x, y, z, r, h) {
+  for (const s of solids) {
+    if (x + r <= s.minX || x - r >= s.maxX || z + r <= s.minZ || z - r >= s.maxZ) continue;
+    if (s.maxY > y + STEP && s.minY < y + h) return true;
+  }
+  return false;
+}
+function moveEntity(e, dx, dz, dt) {
+  e.blocked = false;
+  if (dx) { e.pos.x += dx; if (isBlocked(e.pos.x, e.pos.y, e.pos.z, e.r, e.h)) { e.pos.x -= dx; e.blocked = true; } }
+  if (dz) { e.pos.z += dz; if (isBlocked(e.pos.x, e.pos.y, e.pos.z, e.r, e.h)) { e.pos.z -= dz; e.blocked = true; } }
+  e.vy = Math.max(e.vy - GRAVITY * dt, -60);
+  const ny = e.pos.y + e.vy * dt;
+  const g = groundAt(e.pos.x, e.pos.z, e.pos.y, e.r);
+  if (e.vy <= 0 && ny <= g) { e.pos.y = g; e.vy = 0; e.grounded = true; }
+  else { e.pos.y = ny; e.grounded = false; }
+}
+
+// ---------------------------------------------------------------- player
+const player = {
+  rig: makeRig({ head: 0xffd43b, torso: 0x1e6fff, arms: 0xffd43b, legs: 0x2ecc40 }),
+  pos: new THREE.Vector3(SAFE.x, SAFE.top, SAFE.z + 3),
+  vx: 0, vz: 0, vy: 0, r: PLAYER_R, h: PLAYER_H,
+  grounded: false, blocked: false, coyote: 0, jumpBuf: 0, facing: Math.PI,
+};
+player.rig.root.rotation.y = Math.PI;
+scene.add(player.rig.root);
+
+// ---------------------------------------------------------------- golden egg
+const eggGroup = new THREE.Group();
+const eggMat = new THREE.MeshStandardMaterial({ color: 0xffd23a, emissive: 0xffa000, emissiveIntensity: 0.65, metalness: 0.75, roughness: 0.22 });
+const egg = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 28), eggMat);
+egg.scale.set(1.05, 1.4, 1.05);
+egg.castShadow = true;
+const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffd54a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+halo.scale.set(6.5, 6.5, 1);
+const eggLight = new THREE.PointLight(0xffc840, 45, 18, 2);
+eggGroup.add(egg, halo, eggLight);
+eggGroup.position.copy(EGG_HOME);
+scene.add(eggGroup);
+
+const beacon = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.8, 1.4, 80, 20, 1, true),
+  new THREE.MeshBasicMaterial({ color: 0xffd54a, transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+);
+beacon.position.set(NEST.x, 40, NEST.z);
+scene.add(beacon);
+
+// ---------------------------------------------------------------- guardians
+const alertTex = canvasTex(128, (g) => {
+  g.font = '900 110px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineWidth = 12; g.strokeStyle = '#000'; g.strokeText('!', 64, 68);
+  g.fillStyle = '#ff2b2b'; g.fillText('!', 64, 68);
+});
+const guardians = [0, 1].map((i) => {
+  const rig = makeRig({ head: 0x1b1b1b, torso: 0xd61f1f, arms: 0x1b1b1b, legs: 0x1b1b1b, eye: 0xff2020, angry: true, scale: 0.68 });
+  const alert = new THREE.Sprite(new THREE.SpriteMaterial({ map: alertTex, depthWrite: false, transparent: true }));
+  alert.scale.set(1.6, 1.6, 1);
+  alert.position.y = 4.7;
+  alert.visible = false;
+  rig.root.add(alert);
+  scene.add(rig.root);
+  return { i, rig, alert, pos: new THREE.Vector3(), vy: 0, r: GUARD_R, h: GUARD_H, grounded: false, blocked: false,
+           angle: 0, wp: null, close: false, respawn: 0, moveAmt: 0, facing: 0 };
+});
+function placeGuardian(g) {
+  g.angle = g.i * Math.PI;
+  g.pos.set(NEST.x + Math.cos(g.angle) * PATROL_R, 0.01, NEST.z + Math.sin(g.angle) * PATROL_R);
+  g.vy = 0; g.wp = null; g.close = false; g.respawn = 0;
+  g.rig.root.visible = true;
+}
+function resetGuardians() {
+  for (const g of guardians) {
+    if (g.rig.root.visible) burst(g.pos.clone().setY(g.pos.y + 1.8), 18, [0xd61f1f, 0x1b1b1b], 6, 5);
+    placeGuardian(g);
+  }
+}
+guardians.forEach(placeGuardian);
+
+function nearestWaypoint(p) {
+  let best = 0, bd = Infinity;
+  WAYPOINTS.forEach((w, i) => { const d = (w.x - p.x) ** 2 + (w.z - p.z) ** 2; if (d < bd) { bd = d; best = i; } });
+  return best;
+}
+const chaseSpeed = () => Math.min(9.6 + score * 0.35, 11.3);
+
+function updateGuardian(g, h) {
+  if (g.respawn > 0) {
+    g.respawn -= h;
+    if (g.respawn <= 0) { placeGuardian(g); burst(g.pos.clone().setY(2), 18, [0xd61f1f, 0x1b1b1b], 6, 5); }
+    return false;
+  }
+  let tx, tz, ty, speed;
+  if (!carrying) {
+    g.angle += h * 0.5;
+    tx = NEST.x + Math.cos(g.angle + 0.35) * PATROL_R;
+    tz = NEST.z + Math.sin(g.angle + 0.35) * PATROL_R;
+    ty = g.pos.y;
+    speed = 5.5;
+  } else {
+    speed = chaseSpeed();
+    const pIdx = nearestWaypoint(player.pos);
+    const pdx = player.pos.x - g.pos.x, pdz = player.pos.z - g.pos.z, pdy = player.pos.y - g.pos.y;
+    if (g.wp === null) g.wp = nearestWaypoint(g.pos);
+    // Keep the previous decision while airborne so a jump doesn't flip the target mid-flight.
+    if (g.grounded) g.close = Math.hypot(pdx, pdz) < 7 && Math.abs(pdy) < 2.5;
+    const close = g.close;
+    if (close || g.wp === pIdx) {
+      tx = player.pos.x; tz = player.pos.z; ty = player.pos.y;
+      if (close && g.grounded) g.wp = nearestWaypoint(g.pos);
+    } else {
+      // Walk the course platform-by-platform toward the player's waypoint.
+      const dir = Math.sign(pIdx - g.wp);
+      const w = WAYPOINTS[g.wp], wn = WAYPOINTS[g.wp + dir];
+      const reached = Math.hypot(w.x - g.pos.x, w.z - g.pos.z) < 1.6;
+      const passed = wn && (g.pos.z - w.z) * (wn.z - w.z) > 0;
+      if (g.grounded && (reached || passed)) g.wp += dir;
+      const t = WAYPOINTS[g.wp];
+      tx = t.x; tz = t.z; ty = t.y;
+    }
+  }
+
+  let dx = tx - g.pos.x, dz = tz - g.pos.z;
+  const dist = Math.hypot(dx, dz);
+  let vx = 0, vz = 0;
+  if (dist > 0.05) {
+    dx /= dist; dz /= dist;
+    let sp = carrying ? speed : Math.min(speed, dist * 3);
+    if (carrying && !g.grounded && dist < 1.0) sp *= 0.15; // brake mid-air over the target
+    vx = dx * sp; vz = dz * sp;
+    g.facing = Math.atan2(dx, dz);
+  }
+  if (g.grounded) {
+    if (carrying) {
+      const ahead = groundAt(g.pos.x + dx * 1.3, g.pos.z + dz * 1.3, g.pos.y, 0.2);
+      if (ahead < g.pos.y - 1.2 || g.blocked || (ty - g.pos.y > 1.0 && dist < 6)) g.vy = GUARD_JUMP;
+    } else if (g.blocked) g.vy = GUARD_JUMP;
+  }
+  moveEntity(g, vx * h, vz * h, h);
+  g.moveAmt = Math.hypot(vx, vz) / SPEED;
+
+  if (g.pos.y < KILL_Y) {
+    g.rig.root.visible = false;
+    g.respawn = 2.5;
+    return false;
+  }
+  const tagDx = player.pos.x - g.pos.x, tagDz = player.pos.z - g.pos.z;
+  return invuln <= 0 && Math.hypot(tagDx, tagDz) < 1.3 && Math.abs(player.pos.y - g.pos.y) < 2.6;
+}
+
+// ---------------------------------------------------------------- particles
+const partGeo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
+const partMats = new Map();
+const particles = [];
+function burst(pos, count, colors, speed = 10, up = 8) {
+  for (let i = 0; i < count; i++) {
+    let p = particles.find((q) => !q.active);
+    if (!p) {
+      if (particles.length > 500) return;
+      p = { mesh: new THREE.Mesh(partGeo), vel: new THREE.Vector3(), life: 0, active: false };
+      scene.add(p.mesh);
+      particles.push(p);
+    }
+    const c = colors[i % colors.length];
+    if (!partMats.has(c)) partMats.set(c, new THREE.MeshBasicMaterial({ color: c }));
+    p.mesh.material = partMats.get(c);
+    p.mesh.position.copy(pos);
+    const a = Math.random() * Math.PI * 2, s = speed * (0.3 + Math.random() * 0.7);
+    p.vel.set(Math.cos(a) * s, up * (0.5 + Math.random()), Math.sin(a) * s);
+    p.life = p.maxLife = 0.9 + Math.random() * 0.8;
+    p.active = true;
+    p.mesh.visible = true;
+  }
+}
+function updateParticles(dt) {
+  for (const p of particles) {
+    if (!p.active) continue;
+    p.life -= dt;
+    if (p.life <= 0) { p.active = false; p.mesh.visible = false; continue; }
+    p.vel.y -= 22 * dt;
+    p.mesh.position.addScaledVector(p.vel, dt);
+    p.mesh.rotation.x += dt * 8; p.mesh.rotation.y += dt * 6;
+    p.mesh.scale.setScalar(Math.max(0.05, p.life / p.maxLife));
+  }
+}
+
+// ---------------------------------------------------------------- HUD
+const scoreEl = document.getElementById('scoreValue');
+const statusEl = document.getElementById('status');
+const flashEl = document.getElementById('flash');
+const toastEl = document.getElementById('toast');
+const vignetteEl = document.getElementById('vignette');
+
+function flash(color, strength = 0.65) {
+  flashEl.style.transition = 'none';
+  flashEl.style.background = color;
+  flashEl.style.opacity = String(strength);
+  void flashEl.offsetWidth;
+  flashEl.style.transition = 'opacity 0.8s ease-out';
+  flashEl.style.opacity = '0';
+}
+function toast(main, sub, cls) {
+  toastEl.innerHTML = `<div class="t-main">${main}</div>${sub ? `<div class="t-sub">${sub}</div>` : ''}`;
+  toastEl.className = '';
+  void toastEl.offsetWidth;
+  toastEl.className = `show ${cls}`;
+}
+function updateHud() {
+  scoreEl.textContent = score;
+  if (carrying) {
+    statusEl.textContent = 'RUN! RETURN TO THE SAFE ZONE!';
+    statusEl.classList.add('chase');
+    vignetteEl.classList.add('on');
+  } else {
+    statusEl.textContent = 'Steal the Golden Egg!';
+    statusEl.classList.remove('chase');
+    vignetteEl.classList.remove('on');
+  }
+}
+
+// ---------------------------------------------------------------- game state
+let score = 0, carrying = false, eggPop = 1, invuln = 0, simTime = 0, started = false;
+
+function returnEgg() {
+  carrying = false;
+  scene.add(eggGroup);
+  eggGroup.position.copy(EGG_HOME);
+  eggPop = 0;
+  beacon.visible = true;
+}
+function grabEgg() {
+  carrying = true;
+  player.rig.root.add(eggGroup);
+  eggGroup.position.set(0, 4.6, 0);
+  eggGroup.scale.setScalar(0.75);
+  beacon.visible = false;
+  burst(EGG_HOME, 30, [0xffd84a, 0xffffff, 0xffa000], 9, 9);
+  flash('rgba(255,210,40,1)', 0.35);
+  toast('GOT IT!', 'The Guardians are coming…', 'good');
+  updateHud();
+}
+function scoreEgg() {
+  score++;
+  const at = player.pos.clone().setY(player.pos.y + 3);
+  burst(at, 140, [0xffd84a, 0xff5fc8, 0x2f8cff, 0x8fe03a, 0xffffff, 0xff9f1a], 16, 14);
+  flash('rgba(255,225,80,1)', 0.7);
+  toast('+1 EGG STOLEN!', `Total: ${score}`, 'good');
+  scoreEl.classList.remove('bump'); void scoreEl.offsetWidth; scoreEl.classList.add('bump');
+  returnEgg();
+  resetGuardians();
+  updateHud();
+}
+function respawnPlayer(reason) {
+  burst(player.pos.clone().setY(player.pos.y + 1.6), 40, [0xffd43b, 0x1e6fff, 0x2ecc40, 0xff3b3b], 10, 8);
+  player.pos.set(SAFE.x, SAFE.top, SAFE.z + 3);
+  player.vx = player.vz = player.vy = 0;
+  player.rig.root.rotation.y = Math.PI;
+  player.facing = Math.PI;
+  yaw = 0;
+  camTarget.set(player.pos.x, player.pos.y + 2.4, player.pos.z);
+  if (carrying) returnEgg();
+  resetGuardians();
+  invuln = 1;
+  flash('rgba(255,30,30,1)', 0.6);
+  toast('OOF!', reason, 'bad');
+  updateHud();
+}
+function inSafeZone(p) {
+  return Math.abs(p.x - SAFE.x) < SAFE.size / 2 && Math.abs(p.z - SAFE.z) < SAFE.size / 2 && p.y < SAFE.top + 1.5;
+}
+
+// ---------------------------------------------------------------- input & camera
+const keys = {};
+let yaw = 0, pitch = 0.38, camDist = 13, dragging = false, locked = false;
+const camTarget = new THREE.Vector3(player.pos.x, player.pos.y + 2.4, player.pos.z);
+
+addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  if (e.code === 'Space' && !e.repeat) player.jumpBuf = 0.15;
+});
+addEventListener('keyup', (e) => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+const canvas = renderer.domElement;
+function requestLock() {
+  try { const r = canvas.requestPointerLock?.(); if (r && r.catch) r.catch(() => {}); } catch (_) { /* drag fallback */ }
+}
+canvas.addEventListener('mousedown', () => { dragging = true; if (started && !locked) requestLock(); });
+addEventListener('mouseup', () => { dragging = false; });
+document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === canvas; });
+addEventListener('mousemove', (e) => {
+  if (!started || !(locked || dragging)) return;
+  yaw -= e.movementX * 0.0028;
+  pitch = THREE.MathUtils.clamp(pitch + e.movementY * 0.0025, 0.05, 1.25);
+});
+addEventListener('wheel', (e) => { camDist = THREE.MathUtils.clamp(camDist + Math.sign(e.deltaY) * 1.2, 6, 24); }, { passive: true });
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+document.getElementById('playBtn').addEventListener('click', () => {
+  started = true;
+  document.getElementById('start').classList.add('hidden');
+  requestLock();
+  toast('GO!', 'Steal the Golden Egg!', 'info');
+});
+
+function updateCamera(dt) {
+  camTarget.lerp(new THREE.Vector3(player.pos.x, player.pos.y + 2.4, player.pos.z), 1 - Math.exp(-14 * dt));
+  const cp = Math.cos(pitch);
+  camera.position.set(
+    camTarget.x + Math.sin(yaw) * cp * camDist,
+    camTarget.y + Math.sin(pitch) * camDist,
+    camTarget.z + Math.cos(yaw) * cp * camDist
+  );
+  camera.lookAt(camTarget);
+  sky.position.copy(camera.position);
+}
+
+// ---------------------------------------------------------------- simulation
+function updatePlayer(h) {
+  let ix = 0, iz = 0;
+  if (started) {
+    if (keys.KeyW || keys.ArrowUp) iz += 1;
+    if (keys.KeyS || keys.ArrowDown) iz -= 1;
+    if (keys.KeyD || keys.ArrowRight) ix += 1;
+    if (keys.KeyA || keys.ArrowLeft) ix -= 1;
+  }
+  // Camera-relative movement: forward is where the camera looks.
+  let mx = -Math.sin(yaw) * iz + Math.cos(yaw) * ix;
+  let mz = -Math.cos(yaw) * iz - Math.sin(yaw) * ix;
+  const len = Math.hypot(mx, mz);
+  if (len > 0) { mx /= len; mz /= len; player.facing = Math.atan2(mx, mz); }
+  const speed = SPEED * (carrying ? CARRY_MULT : 1);
+  const k = 1 - Math.exp(-(player.grounded ? 16 : 7) * h);
+  player.vx += (mx * speed - player.vx) * k;
+  player.vz += (mz * speed - player.vz) * k;
+
+  player.coyote = player.grounded ? 0.12 : player.coyote - h;
+  player.jumpBuf -= h;
+  if (started && (player.jumpBuf > 0 || keys.Space) && player.coyote > 0) {
+    player.vy = JUMP_V;
+    player.coyote = 0;
+    player.jumpBuf = 0;
+  }
+  moveEntity(player, player.vx * h, player.vz * h, h);
+}
+
+function step(h) {
+  simTime += h;
+  updateHazards(simTime);
+  updatePlayer(h);
+  if (invuln > 0) invuln -= h;
+
+  if (player.pos.y < KILL_Y) return respawnPlayer('You fell off the map!');
+  if (invuln <= 0 && hitsHazard(player.pos)) return respawnPlayer('Zapped by a laser!');
+
+  if (!carrying) eggPop = Math.min(1, eggPop + h * 2);
+  if (!carrying && eggPop >= 1) {
+    const ex = eggGroup.position.x - player.pos.x, ez = eggGroup.position.z - player.pos.z;
+    const ey = eggGroup.position.y - (player.pos.y + 1.6);
+    if (Math.hypot(ex, ey, ez) < 2.5) grabEgg();
+  }
+  if (carrying && inSafeZone(player.pos)) scoreEgg();
+
+  for (const g of guardians) {
+    if (updateGuardian(g, h)) return respawnPlayer('Tagged by a Guardian!');
+  }
+}
+
+// ---------------------------------------------------------------- visuals
+const easeOutBack = (t) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2;
+let visTime = 0;
+function updateVisuals(dt) {
+  visTime += dt;
+  const pr = player.rig;
+  pr.root.position.copy(player.pos);
+  turnToward(pr.root, player.facing, dt);
+  animateRig(pr, dt, Math.hypot(player.vx, player.vz) / SPEED, player.grounded || player.coyote > 0.05, carrying);
+
+  for (const g of guardians) {
+    g.rig.root.position.copy(g.pos);
+    turnToward(g.rig.root, g.facing, dt, 10);
+    animateRig(g.rig, dt, g.moveAmt * 1.3, g.grounded, false);
+    g.alert.visible = carrying;
+    g.alert.position.y = 4.7 + Math.sin(visTime * 8) * 0.15;
+  }
+
+  if (carrying) {
+    eggGroup.position.y = 4.6 + Math.sin(visTime * 6) * 0.06;
+    egg.rotation.y += dt * 3;
+  } else {
+    eggGroup.scale.setScalar(Math.max(0.01, easeOutBack(eggPop)));
+    eggGroup.position.y = EGG_HOME.y + Math.sin(visTime * 2) * 0.35;
+    egg.rotation.y += dt * 1.2;
+  }
+  eggMat.emissiveIntensity = 0.55 + Math.sin(visTime * 4) * 0.2;
+  halo.material.opacity = 0.75 + Math.sin(visTime * 4) * 0.2;
+  beacon.material.opacity = 0.1 + Math.sin(visTime * 3) * 0.04;
+  safeField.material.opacity = 0.07 + Math.sin(visTime * 2.5) * 0.03 + (carrying ? 0.07 : 0);
+  laserMat.emissiveIntensity = 1.1 + Math.sin(visTime * 12) * 0.35;
+  lavaMat.emissiveIntensity = 0.6 + Math.sin(visTime * 1.5) * 0.12;
+  safeSign.position.y = 5 + Math.sin(visTime * 1.8) * 0.3;
+  nestSign.position.y = 11 + Math.sin(visTime * 1.8 + 1) * 0.3;
+
+  for (const c of clouds) { c.position.x += dt * 2; if (c.position.x > 220) c.position.x = -220; }
+  updateParticles(dt);
+  updateCamera(dt);
+
+  // Keep the shadow frustum centred on the player for crisp shadows.
+  sun.position.set(player.pos.x + 30, player.pos.y + 60, player.pos.z + 25);
+  sun.target.position.copy(player.pos);
+}
+
+// ---------------------------------------------------------------- main loop
+const clock = new THREE.Clock();
+function frame() {
+  requestAnimationFrame(frame);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const n = Math.max(1, Math.ceil(dt / (1 / 120)));
+  for (let i = 0; i < n; i++) step(dt / n);
+  updateVisuals(dt);
+  renderer.render(scene, camera);
+}
+updateHud();
+frame();
+</script>
+</body>
+</html>
